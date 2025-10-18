@@ -1,0 +1,66 @@
+// File: client/src/components/HomePage.jsx
+import React, { useEffect, useState } from 'react';
+import { Carousel } from 'react-responsive-carousel';
+import 'react-responsive-carousel/lib/styles/carousel.min.css';
+import axios from 'axios';
+import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet';
+
+const HomePage = () => {
+  const { t, i18n } = useTranslation();
+  const [featuredRecipes, setFeaturedRecipes] = useState([]);
+  const [trendingRecipes, setTrendingRecipes] = useState([]);
+  const fontClass = i18n.language === 'hi' ? 'font-devanagari' :
+                   i18n.language === 'ta' ? 'font-tamil' :
+                   i18n.language === 'bn' ? 'font-bengali' :
+                   i18n.language === 'mr' ? 'font-marathi' : 'font-poppins';
+
+  // SEO metadata based on language
+  const title = t('welcome') + ' - AI-Powered Pan-Indian Cooking Recipes';
+  const description = t('seo_description', {
+    defaultValue: 'Discover 1000+ authentic Pan-Indian recipes with AI ingredient recognition. Cook North Indian, South Indian, Bengali, and more with SwadhSathi.'
+  });
+  const keywords = t('seo_keywords', {
+    defaultValue: 'Indian recipes, Pan-Indian cooking, AI recipe app, North Indian recipes, South Indian recipes, Bengali recipes, vegan Indian recipes'
+  });
+  const siteUrl = 'https://www.swadhsathi.com'; // Replace with your domain
+  const ogImage = 'https://www.swadhsathi.com/images/og-image.jpg'; // Replace with your image
+
+  useEffect(() => {
+    axios.get('/api/recipes/featured', { params: { lng: i18n.language } })
+      .then(res => setFeaturedRecipes(res.data));
+    axios.get('/api/recipes/trending', { params: { lng: i18n.language } })
+      .then(res => setTrendingRecipes(res.data));
+  }, [i18n.language]);
+
+  // Structured data (JSON-LD) for SEO
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'SwadhSathi',
+    url: siteUrl,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${siteUrl}/recipe-explorer?search={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
+  const recipeStructuredData = featuredRecipes.map(recipe => ({
+    '@context': 'https://schema.org',
+    '@type': 'Recipe',
+    name: recipe.recipe_name,
+    image: recipe.image_url,
+    description: `A delicious ${recipe.region} recipe with ${recipe.diet_type} ingredients.`,
+    recipeIngredient: recipe.ingredients,
+    recipeInstructions: recipe.instructions.map((step, index) => ({
+      '@type': 'HowToStep',
+      text: step,
+      name: `Step ${index + 1}`,
+    })),
+    cookTime: `PT${recipe.cooking_time}M`,
+    recipeCuisine: recipe.region,
+    nutrition: {
+      '@type': 'NutritionInformation',
+      calories: `${recipe.nutrition_facts.calories} calories`,
+      proteinContent
